@@ -28,6 +28,7 @@
 #include "Sequence.h"
 #include "au3-time-and-pitch/TimeAndPitchInterface.h"
 #include "au3-exceptions/UserException.h"
+#include "WaveClipRealtimeEffects.h"
 
 #include "framework/global/realfn.h"
 
@@ -1231,6 +1232,10 @@ XMLTagHandler* WaveClip::HandleXMLChild(const std::string_view& tag)
         mCutLines.push_back(WaveClip::NewShared(1, pFirst->GetFactory(), format, mRate));
         return mCutLines.back().get();
     } else {
+         if (tag == RealtimeEffectList::XMLTag()) {
+             // Force creation if missing, to support loading
+             return static_cast<XMLTagHandler*>(&WaveClipRealtimeEffects::Get(*this));
+         }
          auto pHandler = Attachments::FindIf([&](WaveClipListener& listener){
              return listener.HandleXMLChild(tag);
          });
