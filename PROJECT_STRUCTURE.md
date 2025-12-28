@@ -28,3 +28,4 @@
 
 *   **Non-Destructive Editing**: Experimental preference enabled in `TracksBehaviorsPrefs`.
 *   **Clip-Level Realtime Effects**: Infrastructure added to `WaveClip` to support effect chains.
+*   **Mixing Architecture Analysis**: `TECHNICAL_ANALYSIS_PHASE_1_3.md` added.

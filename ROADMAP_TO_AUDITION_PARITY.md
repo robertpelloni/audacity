@@ -23,6 +23,7 @@ This roadmap outlines the strategic phases required to bring Audacity to feature
 *   **Effect Chain Presets**: Save/load entire chains of effects.
 
 ### 1.3 Professional Multitrack Mixing
+**Status: Analysis Complete**
 **Current State**: Basic volume/pan sliders on tracks. Mixer board is separate and limited.
 **Goal**: A unified Mixer View with bussing and routing.
 *   **Bussing**: Create "Bus Tracks" (Aux tracks) for grouping audio (e.g., Drum Bus).
