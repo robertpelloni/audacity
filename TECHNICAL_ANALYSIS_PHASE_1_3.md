@@ -24,6 +24,8 @@ It needs:
 *   Volume/Pan controls.
 *   Input Buffers (summing point).
 
+**Status:** Scaffold implemented in `au3/libraries/au3-mixer/BusTrack.h`.
+
 ### 2. Routing Logic
 Currently, `AudioIO` iterates `mPlaybackTracks` and mixes them to `mMasterBuffers`.
 We need an intermediate mixing stage.
@@ -37,8 +39,8 @@ We need an intermediate mixing stage.
 We need a `RoutingGraph` or `MixerGraph`.
 
 ### 3. Implementation Steps
-1.  **Define `BusTrack`**: New library `au3-bus-track`? Or inside `au3-mixer`?
-2.  **Routing Property**: Add `DestinationID` to `WaveTrack`. Default is `Master`.
+1.  **Define `BusTrack`**: New library `au3-bus-track`? Or inside `au3-mixer`? (Done: inside `au3-mixer`).
+2.  **Routing Property**: Add `DestinationID` to `WaveTrack`. Default is `Master`. (Done: `PlayableTrack` has `mRouteId` and `mPersistentId`).
 3.  **Audio Engine Update**: Modify `AudioIO::FillPlayBuffers` (specifically `ProcessPlaybackSlices`) to:
     *   Process all `WaveTrack`s (apply clip effects).
     *   Instead of summing to `MasterBuffer`, sum to the buffer of the target `BusTrack`.
@@ -51,5 +53,5 @@ We need a `RoutingGraph` or `MixerGraph`.
 *   **UI**: The Track Panel UI needs to show busses. They should probably sit at the bottom or in a separate folder.
 
 ## Next Steps
-*   Prototype `BusTrack` class.
-*   Add `OutputTarget` property to `WaveTrack`.
+*   Implement `AudioIO` routing logic (Phase 1.3 Step 3).
+*   Add Bus Track UI.

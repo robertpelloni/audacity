@@ -39,10 +39,18 @@ ENUMERATE_TRACK_TYPE(AudioTrack);
 class PLAYABLE_TRACK_API PlayableTrack /* not final */ : public AudioTrack
 {
 public:
+    static constexpr int64_t MasterRouteId = 0;
+
     PlayableTrack();
     PlayableTrack(const PlayableTrack& orig, ProtectedCreationArg&&);
 
     static const TypeInfo& ClassTypeInfo();
+
+    int64_t GetPersistentId() const { return DoGetPersistentId(); }
+    void SetPersistentId(int64_t id);
+
+    int64_t GetRouteId() const { return DoGetRouteId(); }
+    void SetRouteId(int64_t id);
 
     bool GetMute() const { return DoGetMute(); }
     bool GetSolo() const { return DoGetSolo(); }
@@ -58,6 +66,11 @@ public:
     bool HandleXMLAttribute(const std::string_view& attr, const XMLAttributeValueView& value);
 
 protected:
+    int64_t DoGetPersistentId() const;
+    void DoSetPersistentId(int64_t id);
+    int64_t DoGetRouteId() const;
+    void DoSetRouteId(int64_t id);
+
     bool DoGetMute() const;
     void DoSetMute(bool value);
     bool DoGetSolo() const;
