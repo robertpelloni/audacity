@@ -13,6 +13,10 @@
 
 #include "WaveClip.h"
 #include "au3-realtime-effects/RealtimeEffectList.h"
+#include "au3-xml/XMLWriter.h"
+#include "au3-xml/XMLAttributeValueView.h"
+#include <vector>
+#include <mutex>
 
 //! Adapter class to attach RealtimeEffectList to a WaveClip
 class WAVE_TRACK_API WaveClipRealtimeEffects final
@@ -41,8 +45,29 @@ public:
     static RealtimeEffectList& Get(WaveClip& clip);
     static const RealtimeEffectList& Get(const WaveClip& clip);
 
+    // Helpers to access the concrete adapter type
+    static WaveClipRealtimeEffects& GetAdapter(WaveClip& clip);
+    static WaveClipRealtimeEffects& GetAdapter(const WaveClip& clip);
+
+    // Runtime processing methods
+    void Initialize(double rate, size_t bufferSize);
+    bool IsActive() const;
+    bool GetSamples(size_t iChannel, samplePtr buffer, sampleFormat format, sampleCount start, size_t len);
+
 private:
     WaveClip& mClip;
+
+    struct Cache {
+        sampleCount start = -1;
+        size_t len = 0;
+        // Float buffers for all channels of the clip
+        std::vector<std::vector<float>> buffers;
+    } mCache;
+
+    // Helper to resize cache buffers
+    void PrepareCache(size_t numChannels, size_t len);
+
+    mutable std::mutex mCacheMutex;
 };
 
 #endif

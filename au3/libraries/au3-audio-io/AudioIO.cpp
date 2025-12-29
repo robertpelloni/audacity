@@ -114,6 +114,7 @@ time warp info and AudioIOListener and whether the playback is looped.
 #include "au3-project-rate/QualitySettings.h"
 #include "au3-basic-ui/BasicUI.h"
 #include "au3-wave-track/WaveTrack.h"
+#include "au3-wave-track/WaveClipRealtimeEffects.h"
 
 namespace {
 float GetAbsValue(const float* buffer, size_t frames, size_t step)
@@ -172,6 +173,12 @@ struct AudioIoCallback::TransportState {
                 }
                 mpRealtimeInitialization
                 ->AddGroup(*pGroup, numPlaybackChannels, sampleRate, audioThreadBufferSize);
+
+                if (const auto wt = dynamic_cast<const WaveTrack*>(vt)) {
+                    for (const auto& clip : wt->Intervals()) {
+                        WaveClipRealtimeEffects::GetAdapter(*clip).Initialize(sampleRate, audioThreadBufferSize);
+                    }
+                }
             }
         }
     }
