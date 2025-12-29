@@ -1,33 +1,32 @@
-# Project Structure & Dashboard
+# Project Dashboard & Structure
+
+## Version
+Current Version: 3.7.2
 
 ## Submodules
+| Name | Path | Version (Commit) | Description |
+| :--- | :--- | :--- | :--- |
+| **bobcoin** | `bobcoin/` | `44f3944e89a5eba5f95113b56709bf7500265e04` | Bobcoin cryptocurrency submodule. |
+| **muse_framework** | `muse_framework/` | `db0f4fd338c51996a72ea2fa05cc687e3686f1ec` | MuseScore UI Framework (Qt/QML based). |
 
-| Path | URL | Status | Version (Commit) | Date Checked |
-|------|-----|--------|------------------|--------------|
-| `muse_framework` | `https://github.com/musescore/framework_tmp.git` | Active | `db0f4fd338c51996a72ea2fa05cc687e3686f1ec` | 2025-12-28 |
-| `bobcoin` | `https://github.com/robertpelloni/bobcoin` | Active | (New) | 2025-12-28 |
+## Directory Structure
+*   `au3/`: Core Audacity 3 libraries (Modern C++ architecture).
+    *   `au3-wave-track/`: Waveform handling, Clips, Rendering.
+    *   `au3-mixer/`: Mixing engine, `BusTrack`, `Envelope`.
+    *   `au3-audio-io/`: PortAudio backend, playback scheduling.
+    *   `au3-realtime-effects/`: VST/AU/LV2 hosting and processing.
+    *   `au3-playable-track/`: `PlayableTrack` base class (Mute/Solo/Routing).
+*   `src/`: Application logic, Menus, Commands (Legacy & GUI).
+*   `modules/`: Dynamic modules (Scripting, etc).
+*   `include/`: Global headers.
 
-## Directory Layout
+## Build System
+*   **CMake**: Primary build system.
+*   **Conan**: Dependency management (optional/legacy).
+*   **Pre-requisites**: C++17, Python 3, CMake 3.16+, wxWidgets 3.1+, Qt 6 (for Muse Framework).
 
-*   **`au3/`**: Core Audacity 3+ libraries and modules.
-    *   **`libraries/`**: Reusable C++ libraries (modular architecture).
-        *   `au3-wave-track`: Core waveform handling.
-        *   `au3-realtime-effects`: Real-time effect chain management.
-        *   `au3-audio-io`: Audio playback and recording engine.
-        *   `au3-project`: Project management.
-    *   **`modules/`**: Optional modules (importers, cloud sharing).
-    *   **`src/`**: Main application logic (UI, Preferences, Menus).
-*   **`src/`**: Legacy/Main source directory (gradually moving to `au3`).
-*   **`muse_framework/`**: UI framework submodule.
-
-## Build Information
-
-*   **Build System**: CMake
-*   **Compiler Standard**: C++17 (implied)
-
-## Recent Feature Additions (Audition Parity Roadmap)
-
-*   **Non-Destructive Editing**: Experimental preference enabled in `TracksBehaviorsPrefs`.
-*   **Clip-Level Realtime Effects**: Infrastructure added to `WaveClip` to support effect chains.
-*   **Mixing Architecture Analysis**: `TECHNICAL_ANALYSIS_PHASE_1_3.md` added.
-*   **Mixing Architecture Analysis**: `TECHNICAL_ANALYSIS_PHASE_1_3.md` added.
+## Key Files
+*   `VERSION.md`: Single source of truth for project version.
+*   `CHANGELOG.txt`: History of changes.
+*   `ROADMAP_TO_AUDITION_PARITY.md`: Strategic roadmap.
+*   `LLM_INSTRUCTIONS.md`: Universal instructions for AI Agents.

@@ -1,4 +1,7 @@
-See `LLM_INSTRUCTIONS.md` for universal instructions.
+# CLAUDE.md
 
-## Claude-Specific Context
-*   Focus on high-level architecture and C++ implementation details.
+Please refer to `LLM_INSTRUCTIONS.md` for universal instructions.
+
+## Context
+You are working on the Audacity project, specifically the "Audition Parity" roadmap.
+Current focus: Phase 1.3 (Mixing & Bussing).

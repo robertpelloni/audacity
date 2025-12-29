@@ -2262,6 +2262,18 @@ bool AudioIO::ProcessPlaybackSlices(
                 continue;
             }
 
+            bool routedToMaster = true;
+            if (const auto pt = dynamic_cast<const PlayableTrack*>(seq.get())) {
+                if (pt->GetRouteId() != PlayableTrack::MasterRouteId) {
+                    routedToMaster = false;
+                }
+            }
+
+            if (!routedToMaster) {
+                bufferIndex += seq->NChannels();
+                continue;
+            }
+
             auto& buffers = track.mBuffers;
             const auto numChannels = seq->NChannels();
             if (numChannels > 1) {
