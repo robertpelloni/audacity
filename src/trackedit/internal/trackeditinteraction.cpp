@@ -288,6 +288,11 @@ bool TrackeditInteraction::newStereoTrack()
     return withPlaybackStop(&ITrackeditInteraction::newStereoTrack);
 }
 
+bool TrackeditInteraction::newBusTrack()
+{
+    return withPlaybackStop(&ITrackeditInteraction::newBusTrack);
+}
+
 muse::RetVal<TrackId> TrackeditInteraction::newLabelTrack(const muse::String& title)
 {
     return withPlaybackStopRetVal(&ITrackeditInteraction::newLabelTrack, title);

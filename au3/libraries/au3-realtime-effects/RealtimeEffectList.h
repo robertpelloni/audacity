@@ -53,6 +53,8 @@ public:
     RealtimeEffectList& operator=(const RealtimeEffectList&);
     std::unique_ptr<ClientData::Cloneable<> > Clone() const override;
 
+    enum class Stage { All, PreFader, PostFader };
+
     using Lock = spinlock;
     using States = std::vector<std::shared_ptr<RealtimeEffectState> >;
 
@@ -76,21 +78,38 @@ public:
 
     //! Apply the function to all states sequentially.
     template<typename StateVisitor>
-    void Visit(const StateVisitor& func)
+    void Visit(const StateVisitor& func, Stage stage = Stage::All)
     {
+        size_t i = 0;
         for (auto& state : mStates) {
-            func(*state, IsActive());
+            bool process = (stage == Stage::All) ||
+                           (stage == Stage::PreFader && i < mSplitPoint) ||
+                           (stage == Stage::PostFader && i >= mSplitPoint);
+            if (process) {
+                func(*state, IsActive());
+            }
+            ++i;
         }
     }
 
     //! Apply the function to all states sequentially.
     template<typename StateVisitor>
-    void Visit(const StateVisitor& func) const
+    void Visit(const StateVisitor& func, Stage stage = Stage::All) const
     {
+        size_t i = 0;
         for (const auto& state : mStates) {
-            func(*state, IsActive());
+            bool process = (stage == Stage::All) ||
+                           (stage == Stage::PreFader && i < mSplitPoint) ||
+                           (stage == Stage::PostFader && i >= mSplitPoint);
+            if (process) {
+                func(*state, IsActive());
+            }
+            ++i;
         }
     }
+
+    size_t GetSplitPoint() const noexcept { return mSplitPoint; }
+    void SetSplitPoint(size_t index) noexcept { mSplitPoint = index; }
 
     //! Use only in the main thread
     //! Returns true for success.
@@ -158,6 +177,7 @@ public:
 
 private:
     States mStates;
+    size_t mSplitPoint { std::numeric_limits<size_t>::max() };
 
     using LockGuard = std::lock_guard<Lock>;
     mutable Lock mLock;

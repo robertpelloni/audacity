@@ -1,4 +1,33 @@
+Changes in 3.7.3:
+  * [Feature] Pre/Post Fader Effects: Implemented backend support for split-stage effect processing.
+  * [Feature] Bus Routing Logic: Implemented AudioIO routing engine (Source -> Bus -> Master).
+  * [Project] Submodules: Updated `bobcoin` to latest.
+
+Changes in 3.7.2:
+  * [Feature] Track Routing Data Model: Added persistent IDs and routing targets to tracks (Phase 1.3).
+  * [Feature] Real-time Clip Effects: Implemented clip-level effect processing backend (Phase 1.2).
+  * [Feature] Bus Tracks: Added `BusTrack` class scaffold.
+  * [Feature] Non-Destructive Editing: Implemented toggleable non-destructive editing mode.
+  * [Project] Submodules: Added `bobcoin` and updated `muse_framework`.
+  * [Project] Documentation: Comprehensive roadmap and project structure documentation.
+
 List of significant changes and bug fixes going back to version 1.1.0
+
+Changes in version 3.7.1 (Dev)
+
+   * Maintenance updates.
+
+Changes in version 3.7.0
+
+This version introduces foundational features for the Adobe Audition Parity Roadmap.
+
+ Major Features
+   * Non-Destructive Editing (Experimental)
+     - Added a preference in Tracks Behaviors to enable non-destructive deletion.
+     - When enabled, deleting audio trims clips instead of removing sample data.
+   * Real-Time Effects on Clips
+     - Added underlying architecture to support real-time effects on individual clips.
+     - (Note: UI for this feature is in development).
 
 Changes in version 3.6.4
 

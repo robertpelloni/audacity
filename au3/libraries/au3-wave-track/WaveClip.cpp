@@ -28,6 +28,7 @@
 #include "Sequence.h"
 #include "au3-time-and-pitch/TimeAndPitchInterface.h"
 #include "au3-exceptions/UserException.h"
+#include "WaveClipRealtimeEffects.h"
 
 #include "framework/global/realfn.h"
 
@@ -43,11 +44,20 @@ void WaveClipListener::WriteXMLAttributes(XMLWriter&) const
 {
 }
 
+void WaveClipListener::WriteXMLTags(XMLWriter&) const
+{
+}
+
 bool WaveClipListener::HandleXMLAttribute(
     const std::string_view&, const XMLAttributeValueView&)
 {
     return false;
 }
+
+ XMLTagHandler* WaveClipListener::HandleXMLChild(const std::string_view&)
+ {
+     return nullptr;
+ }
 
 void WaveClipListener::MakeStereo(WaveClipListener&&, bool)
 {
@@ -1222,7 +1232,14 @@ XMLTagHandler* WaveClip::HandleXMLChild(const std::string_view& tag)
         mCutLines.push_back(WaveClip::NewShared(1, pFirst->GetFactory(), format, mRate));
         return mCutLines.back().get();
     } else {
-        return nullptr;
+         if (tag == RealtimeEffectList::XMLTag()) {
+             // Force creation if missing, to support loading
+             return static_cast<XMLTagHandler*>(&WaveClipRealtimeEffects::Get(*this));
+         }
+         auto pHandler = Attachments::FindIf([&](WaveClipListener& listener){
+             return listener.HandleXMLChild(tag);
+         });
+         return pHandler ? dynamic_cast<XMLTagHandler*>(pHandler) : nullptr;
     }
 }
 
@@ -1263,6 +1280,10 @@ void WaveClip::WriteXML(size_t ii, XMLWriter& xmlFile) const
 
     mSequences[ii]->WriteXML(xmlFile);
     mEnvelope->WriteXML(xmlFile);
+
+    Attachments::ForEach([&](const WaveClipListener& listener){
+        listener.WriteXMLTags(xmlFile);
+    });
 
     for (const auto& clip: mCutLines) {
         clip->WriteXML(ii, xmlFile);

@@ -55,9 +55,15 @@ struct WaveClipListener : WaveClipListenerBase {
     // Default implementation does nothing
     virtual void WriteXMLAttributes(XMLWriter& writer) const;
 
+    // Default implementation does nothing
+    virtual void WriteXMLTags(XMLWriter& writer) const;
+
     // Default implementation just returns false
     virtual bool HandleXMLAttribute(
         const std::string_view& attr, const XMLAttributeValueView& valueView);
+
+    // Default implementation returns nullptr
+    virtual XMLTagHandler* HandleXMLChild(const std::string_view& tag);
 
     //! Append the other's attachments to this, assuming concrete subclasses are
     //! the same

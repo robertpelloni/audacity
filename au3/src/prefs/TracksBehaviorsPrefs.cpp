@@ -82,6 +82,11 @@ ChoiceSetting TracksBehaviorsAudioTrackPastePolicy {
     2, // "Ask"
 };
 
+BoolSetting NonDestructiveEditing {
+    "/GUI/NonDestructiveEditing",
+    false
+};
+
 void TracksBehaviorsPrefs::PopulateOrExchange(ShuttleGui& S)
 {
     S.SetBorder(2);
@@ -89,6 +94,8 @@ void TracksBehaviorsPrefs::PopulateOrExchange(ShuttleGui& S)
 
     S.StartStatic(XO("Behaviors"));
     {
+        S.TieCheckBox(XXO("Non-destructive editing (Experimental)"),
+                      NonDestructiveEditing);
         S.TieCheckBox(XXO("&Select all audio, if selection required"),
                       { wxT("/GUI/SelectAllOnNone"),
                         false });
@@ -169,6 +176,7 @@ bool TracksBehaviorsPrefs::Commit()
     ShuttleGui S(this, eIsSavingToPrefs);
     PopulateOrExchange(S);
     EditClipsCanMove.Invalidate();
+    NonDestructiveEditing.Invalidate();
 
     return true;
 }

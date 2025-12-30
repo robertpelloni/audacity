@@ -25,6 +25,7 @@
 #include <thread>
 #include <utility>
 #include <array>
+#include <map>
 #include <wx/atomic.h> // member variable
 #include <wx/thread.h>
 
@@ -39,6 +40,7 @@ class Mixer;
 class OtherPlayableSequence;
 class RealtimeEffectState;
 class Resample;
+class BusTrack;
 
 class AudacityProject;
 
@@ -246,6 +248,11 @@ public:
     //!Buffers that hold outcome of transformations applied to each individual sample source.
     //!Number of buffers equals to the sum of number all source channels.
     std::vector<std::vector<float> > mProcessingBuffers;
+
+    // Bus Buffers: ID -> Channels -> Samples
+    std::map<int64_t, std::vector<std::vector<float>>> mBusBuffers;
+    std::vector<std::shared_ptr<const BusTrack>> mBusTracks;
+
     //!These buffers are used to mix and process the result of processed source channels.
     //!Number of buffers equals to number of output channels.
     std::vector<std::vector<float> > mMasterBuffers;

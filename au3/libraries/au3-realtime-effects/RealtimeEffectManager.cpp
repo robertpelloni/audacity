@@ -122,7 +122,7 @@ void RealtimeEffectManager::ProcessStart(bool suspended)
 size_t RealtimeEffectManager::Process(bool suspended,
                                       const ChannelGroup* group,
                                       float* const* buffers, float* const* scratch, float* const dummy,
-                                      unsigned nBuffers, size_t numSamples)
+                                      unsigned nBuffers, size_t numSamples, RealtimeEffectList::Stage stage)
 {
     // Can be suspended because of the audio stream being paused or because
     // effects have been suspended, so allow the samples to pass as-is.
@@ -162,7 +162,7 @@ size_t RealtimeEffectManager::Process(bool suspended,
             std::swap(ibuf[i], obuf[i]);
         }
         called++;
-    });
+    }, stage);
 
     // Once we're done, we might wind up with the last effect storing its results
     // in the temporary buffers.  If that's the case, we need to copy it over to

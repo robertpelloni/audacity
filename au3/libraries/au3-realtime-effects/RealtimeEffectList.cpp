@@ -33,7 +33,15 @@ std::unique_ptr<ClientData::Cloneable<> > RealtimeEffectList::Clone() const
 
 RealtimeEffectList& RealtimeEffectList::operator=(const RealtimeEffectList& other)
 {
-    mStates = other.mStates;
+    // Deep copy of states
+    mStates.clear();
+    mStates.reserve(other.mStates.size());
+    for (const auto& otherState : other.mStates) {
+        auto newState = std::make_shared<RealtimeEffectState>(otherState->GetID());
+        *newState = *otherState;
+        mStates.push_back(newState);
+    }
+    mSplitPoint = other.mSplitPoint;
     SetActive(other.IsActive());
     return *this;
 }
@@ -252,6 +260,7 @@ const std::string& RealtimeEffectList::XMLTag()
 }
 
 static constexpr auto activeAttribute = "active";
+static constexpr auto splitPointAttribute = "split_point";
 
 bool RealtimeEffectList::HandleXMLTag(
     const std::string_view& tag, const AttributesList& attrs)
@@ -260,6 +269,10 @@ bool RealtimeEffectList::HandleXMLTag(
         for (auto&[attr, value] : attrs) {
             if (attr == activeAttribute) {
                 SetActive(value.Get<bool>());
+            } else if (attr == splitPointAttribute) {
+                size_t splitPoint = std::numeric_limits<size_t>::max();
+                value.TryGet(splitPoint);
+                SetSplitPoint(splitPoint);
             }
         }
         return true;
@@ -280,6 +293,7 @@ void RealtimeEffectList::WriteXML(XMLWriter& xmlFile) const
 {
     xmlFile.StartTag(XMLTag());
     xmlFile.WriteAttr(activeAttribute, IsActive());
+    xmlFile.WriteAttr(splitPointAttribute, GetSplitPoint());
     for (const auto& state : mStates) {
         state->WriteXML(xmlFile);
     }

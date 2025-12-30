@@ -28,6 +28,7 @@ from the project that will own the track.
 #include "WaveTrack.h"
 
 #include "WaveClip.h"
+#include "WaveClipRealtimeEffects.h"
 
 #include <wx/defs.h>
 #include <wx/debug.h>
@@ -1257,8 +1258,9 @@ void WaveTrack::Clear(double t0, double t1, bool moveClips)
 {
     bool addCutLines = false;
     bool split = false;
+    bool clearByTrimming = gPrefs->ReadBool("/GUI/NonDestructiveEditing", false);
 
-    HandleClear(t0, t1, addCutLines, split, moveClips);
+    HandleClear(t0, t1, addCutLines, split, moveClips, clearByTrimming);
 }
 
 /*! @excsafety{Strong} */
@@ -2843,11 +2845,19 @@ bool WaveTrack::GetOne(const WaveClipHolders& clips, size_t iChannel,
                 // samplesToCopy is positive and not more than len
             }
 
-            if (!clip->GetSamples(iChannel,
-                                  (samplePtr)(((char*)buffer)
-                                              + startDelta.as_size_t()
-                                              * SAMPLE_SIZE(format)),
-                                  format, inclipDelta, samplesToCopy.as_size_t(), mayThrow)) {
+            auto& adapter = WaveClipRealtimeEffects::GetAdapter(*clip);
+            bool success = false;
+            auto destBuffer = (samplePtr)(((char*)buffer)
+                                          + startDelta.as_size_t()
+                                          * SAMPLE_SIZE(format));
+
+            if (adapter.IsActive()) {
+                 success = adapter.GetSamples(*clip, iChannel, destBuffer, format, inclipDelta, samplesToCopy.as_size_t());
+            } else {
+                 success = clip->GetSamples(iChannel, destBuffer, format, inclipDelta, samplesToCopy.as_size_t(), mayThrow);
+            }
+
+            if (!success) {
                 result = false;
             } else {
                 samplesCopied += samplesToCopy;

@@ -114,6 +114,8 @@ time warp info and AudioIOListener and whether the playback is looped.
 #include "au3-project-rate/QualitySettings.h"
 #include "au3-basic-ui/BasicUI.h"
 #include "au3-wave-track/WaveTrack.h"
+#include "au3-wave-track/WaveClipRealtimeEffects.h"
+#include "au3-mixer/BusTrack.h"
 
 namespace {
 float GetAbsValue(const float* buffer, size_t frames, size_t step)
@@ -153,6 +155,7 @@ int64_t AudioIoCallback::Track::trackId() const
 struct AudioIoCallback::TransportState {
     TransportState(std::weak_ptr<AudacityProject> wOwningProject,
                    const ConstPlayableSequences& playbackSequences,
+                   const std::vector<std::shared_ptr<const BusTrack>>& busTracks,
                    unsigned numPlaybackChannels, double sampleRate, size_t audioThreadBufferSize)
     {
         if (auto pOwningProject = wOwningProject.lock();
@@ -172,6 +175,16 @@ struct AudioIoCallback::TransportState {
                 }
                 mpRealtimeInitialization
                 ->AddGroup(*pGroup, numPlaybackChannels, sampleRate, audioThreadBufferSize);
+
+                if (const auto wt = dynamic_cast<const WaveTrack*>(vt)) {
+                    for (const auto& clip : wt->Intervals()) {
+                        WaveClipRealtimeEffects::GetAdapter(*clip).Initialize(sampleRate, audioThreadBufferSize);
+                    }
+                }
+            }
+
+            for (const auto& bus : busTracks) {
+                mpRealtimeInitialization->AddGroup(*bus, numPlaybackChannels, sampleRate, audioThreadBufferSize);
             }
         }
     }
@@ -990,6 +1003,7 @@ int AudioIO::StartStream(const TransportSequences& sequences,
     mLastRecordingOffset = 0;
     mCaptureSequences = sequences.captureSequences;
     mPlaybackSequences = sequences.playbackSequences;
+    mBusTracks = sequences.busTracks;
     mPlaybackTracks = {
         sequences.playbackSequences.begin(),
         sequences.playbackSequences.end()
@@ -1002,6 +1016,7 @@ int AudioIO::StartStream(const TransportSequences& sequences,
             // Don't keep unnecessary shared pointers to sequences
             mPlaybackSequences.clear();
             mPlaybackTracks.clear();
+            mBusTracks.clear();
             mCaptureSequences.clear();
             for (auto& ext : Extensions()) {
                 ext.AbortOtherStream();
@@ -1016,6 +1031,7 @@ int AudioIO::StartStream(const TransportSequences& sequences,
     mScratchBuffers.clear();
     mScratchPointers.clear();
     mPlaybackMixers.clear();
+    mBusBuffers.clear();
     mCaptureBuffers.clear();
     mResample.clear();
     ResetCaptureRouting();
@@ -1106,7 +1122,7 @@ int AudioIO::StartStream(const TransportSequences& sequences,
         }
     }
 
-    mpTransportState = std::make_unique<TransportState>(mOwningProject, mPlaybackSequences, mNumPlaybackChannels, mRate,
+    mpTransportState = std::make_unique<TransportState>(mOwningProject, mPlaybackSequences, mBusTracks, mNumPlaybackChannels, mRate,
                                                         mPlaybackSamplesToCopy);
 
     if (pStartTime) {
@@ -1344,6 +1360,18 @@ bool AudioIO::AllocateBuffers(
                     mMasterBuffers.resize(mNumPlaybackChannels);
                     for (auto& buffer : mMasterBuffers) {
                         buffer.reserve(playbackBufferSize);
+                    }
+
+                    for (const auto& bus : mBusTracks) {
+                        auto& busBufs = mBusBuffers[bus->GetPersistentId()];
+                        // Busses effectively have 2 channels (Stereo) or mNumPlaybackChannels?
+                        // For simplicity, assume Busses match output channels (Stereo usually).
+                        // Or we need Bus configuration.
+                        // Assuming 2 channels for now or mNumPlaybackChannels.
+                        busBufs.resize(mNumPlaybackChannels);
+                        for (auto& buf : busBufs) {
+                            buf.reserve(playbackBufferSize);
+                        }
                     }
 
                     // Number of scratch buffers depends on device playback channels
@@ -2199,11 +2227,42 @@ bool AudioIO::ProcessPlaybackSlices(
                     std::fill_n(pointers[i], len, .0f);
                 }
 
-                const auto discardable = pScope->Process(channelGroup, &pointers[0],
+                auto discardable = pScope->Process(channelGroup, &pointers[0],
                                                          mScratchPointers.data(),
                                                          // The single dummy output buffer:
                                                          mScratchPointers[mNumPlaybackChannels],
-                                                         mNumPlaybackChannels, len);
+                                                         mNumPlaybackChannels, len, RealtimeEffectList::Stage::PreFader);
+
+                for (int i = 0; i < seq->NChannels(); ++i) {
+                    auto& buffer = mProcessingBuffers[bufferIndex + i];
+                    buffer.erase(buffer.begin() + offset, buffer.begin() + offset + discardable);
+                }
+
+                // Update len after pre-fader discard
+                auto currentLen = len - discardable;
+
+                // Apply Gain (Pre-Pan)
+                float gain = 1.0f;
+                if (const auto wt = dynamic_cast<const WaveTrack*>(seq.get())) {
+                    gain = wt->GetVolume();
+                }
+
+                if (gain != 1.0f && currentLen > 0) {
+                    for (int i = 0; i < seq->NChannels(); ++i) {
+                        auto& buffer = mProcessingBuffers[bufferIndex + i];
+                        float* data = buffer.data() + offset;
+                        for(size_t s=0; s<currentLen; ++s) {
+                            data[s] *= gain;
+                        }
+                    }
+                }
+
+                // Post-Fader
+                discardable = pScope->Process(channelGroup, &pointers[0],
+                                              mScratchPointers.data(),
+                                              mScratchPointers[mNumPlaybackChannels],
+                                              mNumPlaybackChannels, currentLen, RealtimeEffectList::Stage::PostFader);
+
                 // Check for asynchronous user changes in mute, solo status
                 const auto silenced = SequenceShouldBeSilent(*seq);
                 for (int i = 0; i < seq->NChannels(); ++i) {
@@ -2211,7 +2270,7 @@ bool AudioIO::ProcessPlaybackSlices(
                     buffer.erase(buffer.begin() + offset, buffer.begin() + offset + discardable);
                     if (silenced) {
                         //TODO: fade out smoothly
-                        std::fill_n(buffer.data() + offset, len - discardable, 0);
+                        std::fill_n(buffer.data() + offset, currentLen - discardable, 0);
                     }
                 }
             }
@@ -2239,12 +2298,22 @@ bool AudioIO::ProcessPlaybackSlices(
         for (auto& buffer : mMasterBuffers) {
             buffer.clear();
         }
+        for (auto& pair : mBusBuffers) {
+            for (auto& buffer : pair.second) {
+                buffer.clear();
+            }
+        }
     });
 
     for (auto& buffer : mMasterBuffers) {
         //assert(buffer.size() == 0);
         //assert(buffer.capacity() >= samplesAvailable);
         buffer.resize(samplesAvailable, 0);
+    }
+    for (auto& pair : mBusBuffers) {
+        for (auto& buffer : pair.second) {
+            buffer.resize(samplesAvailable, 0);
+        }
     }
 
     {
@@ -2255,11 +2324,63 @@ bool AudioIO::ProcessPlaybackSlices(
                 continue;
             }
 
+            bool routedToMaster = true;
+            int64_t routeId = PlayableTrack::MasterRouteId;
+            if (const auto pt = dynamic_cast<const PlayableTrack*>(seq.get())) {
+                routeId = pt->GetRouteId();
+                if (routeId != PlayableTrack::MasterRouteId) {
+                    routedToMaster = false;
+                }
+            }
+
+            if (!routedToMaster) {
+                // Mix to Bus Buffer
+                auto it = mBusBuffers.find(routeId);
+                if (it != mBusBuffers.end()) {
+                    auto& destBuffers = it->second;
+                    const auto numChannels = seq->NChannels();
+
+                    float gain = 1.0f;
+                    if (const auto wt = dynamic_cast<const WaveTrack*>(seq.get())) {
+                        gain = wt->GetVolume();
+                    }
+
+                    if (numChannels > 1) {
+                        for (unsigned n = 0, cnt = std::min(numChannels, (size_t)destBuffers.size()); n < cnt; ++n) {
+                            float volume = seq->GetChannelVolume(n);
+                            if (gain != 0.0f) volume /= gain; else volume = 0.0f;
+                            for (unsigned i = 0; i < samplesAvailable; ++i) {
+                                destBuffers[n][i] += mProcessingBuffers[bufferIndex + n][i] * volume;
+                            }
+                        }
+                    } else if (numChannels == 1) {
+                        // Mix mono source to all bus channels
+                        for (unsigned n = 0; n < destBuffers.size(); ++n) {
+                            float volume = seq->GetChannelVolume(n);
+                            if (gain != 0.0f) volume /= gain; else volume = 0.0f;
+                            for (unsigned i = 0; i < samplesAvailable; ++i) {
+                                destBuffers[n][i] += mProcessingBuffers[bufferIndex][i] * volume;
+                            }
+                        }
+                    }
+                }
+
+                bufferIndex += seq->NChannels();
+                continue;
+            }
+
             auto& buffers = track.mBuffers;
             const auto numChannels = seq->NChannels();
+            float gain = 1.0f;
+            if (const auto wt = dynamic_cast<const WaveTrack*>(seq.get())) {
+                gain = wt->GetVolume();
+            }
+
             if (numChannels > 1) {
                 for (unsigned n = 0, cnt = std::min(numChannels, mNumPlaybackChannels); n < cnt; ++n) {
-                    const float volume = seq->GetChannelVolume(n);
+                    float volume = seq->GetChannelVolume(n);
+                    if (gain != 0.0f) volume /= gain; else volume = 0.0f;
+
                     for (unsigned i = 0; i < samplesAvailable; ++i) {
                         mProcessingBuffers[bufferIndex + n][i] *= volume;
                         mMasterBuffers[n][i] += mProcessingBuffers[bufferIndex + n][i];
@@ -2277,18 +2398,21 @@ bool AudioIO::ProcessPlaybackSlices(
                 for (unsigned n = 0; n < mNumPlaybackChannels; ++n) {
                     maxVolume = std::max(maxVolume, seq->GetChannelVolume(n));
                 }
+                float maxPan = maxVolume; // Approx
+                if (gain != 0.0f) maxPan /= gain; else maxPan = 0.0f;
 
                 // Mix mono source is duplicated into every output channel
                 // accounting for panning
                 for (unsigned n = 0; n < mNumPlaybackChannels; ++n) {
-                    const float volume = seq->GetChannelVolume(n);
+                    float volume = seq->GetChannelVolume(n);
+                    if (gain != 0.0f) volume /= gain; else volume = 0.0f;
                     for (unsigned i = 0; i < samplesAvailable; ++i) {
                         mMasterBuffers[n][i] += mProcessingBuffers[bufferIndex][i] * volume;
                     }
                 }
 
                 for (unsigned i = 0; i < samplesAvailable; ++i) {
-                    mProcessingBuffers[bufferIndex][i] *= maxVolume;
+                    mProcessingBuffers[bufferIndex][i] *= maxPan;
                 }
 
                 for (unsigned n = 0; n < mNumPlaybackChannels; ++n) {
@@ -2306,6 +2430,59 @@ bool AudioIO::ProcessPlaybackSlices(
     //remove only samples that were processed in previous step
     for (auto& buffer : mProcessingBuffers) {
         buffer.erase(buffer.begin(), buffer.begin() + samplesAvailable);
+    }
+
+    if (pScope) {
+        auto scratch = mScratchPointers.data();
+        auto dummy = mScratchPointers[mNumPlaybackChannels];
+
+        for (const auto& bus : mBusTracks) {
+            auto it = mBusBuffers.find(bus->GetPersistentId());
+            if (it == mBusBuffers.end()) continue;
+            auto& buffers = it->second;
+
+            // Prepare pointers
+            const auto pointers = stackAllocate(float*, buffers.size());
+            for(size_t i=0; i<buffers.size(); ++i) pointers[i] = buffers[i].data();
+
+            // Process Effects
+            const ChannelGroup* group = static_cast<const ChannelGroup*>(bus.get());
+
+            size_t discarded = pScope->Process(group, pointers, scratch, dummy, buffers.size(), samplesAvailable);
+
+            if (discarded > 0) {
+                for (auto& buffer : buffers) {
+                    if (discarded < buffer.size()) {
+                        buffer.erase(buffer.begin(), buffer.begin() + discarded);
+                        buffer.resize(samplesAvailable, 0.0f);
+                    } else {
+                        buffer.assign(samplesAvailable, 0.0f);
+                    }
+                }
+            }
+
+            // Output Routing
+            int64_t routeId = bus->GetRouteId();
+            if (routeId == PlayableTrack::MasterRouteId) {
+                 // Mix to mMasterBuffers
+                 for(size_t i=0; i<std::min(buffers.size(), mMasterBuffers.size()); ++i) {
+                     for(size_t s=0; s<samplesAvailable; ++s) {
+                         mMasterBuffers[i][s] += buffers[i][s];
+                     }
+                 }
+            } else {
+                 // Mix to another Bus
+                 auto targetIt = mBusBuffers.find(routeId);
+                 if (targetIt != mBusBuffers.end()) {
+                     auto& targetBuffers = targetIt->second;
+                     for(size_t i=0; i<std::min(buffers.size(), targetBuffers.size()); ++i) {
+                         for(size_t s=0; s<samplesAvailable; ++s) {
+                             targetBuffers[i][s] += buffers[i][s];
+                         }
+                     }
+                 }
+            }
+        }
     }
 
     // Do any realtime effect processing, after all the little

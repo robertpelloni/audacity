@@ -480,6 +480,15 @@ bool TrackeditOperationController::newStereoTrack()
     return false;
 }
 
+bool TrackeditOperationController::newBusTrack()
+{
+    if (tracksInteraction()->newBusTrack()) {
+        projectHistory()->pushHistoryState("Created new bus track", "New Bus Track");
+        return true;
+    }
+    return false;
+}
+
 muse::RetVal<TrackId> TrackeditOperationController::newLabelTrack(const muse::String& title)
 {
     return tracksInteraction()->newLabelTrack(title);

@@ -62,6 +62,8 @@
 #include "repair/repaireffect.h"
 #include "truncatesilence/truncatesilenceeffect.h"
 #include "truncatesilence/truncatesilenceviewmodel.h"
+#include "spectralheal/spectralhealeffect.h"
+#include "adaptivenoisereduction/adaptivenoisereductioneffect.h"
 #if USE_SOUNDTOUCH
 #include "changepitch/changepitcheffect.h"
 #include "changepitch/changepitchviewmodel.h"
@@ -79,6 +81,8 @@ void BuiltinEffectsRepository::preInit()
     static BuiltinEffectsModule::Registration< Repair > regRepair;
     static BuiltinEffectsModule::Registration< ReverseEffect > regReverse;
     static BuiltinEffectsModule::Registration< TruncateSilenceEffect > regTruncateSilence;
+    static BuiltinEffectsModule::Registration< SpectralHealEffect > regSpectralHeal;
+    static BuiltinEffectsModule::Registration< AdaptiveNoiseReductionEffect > regAdaptiveNoiseReduction;
 #if USE_SOUNDTOUCH
     static BuiltinEffectsModule::Registration< ChangePitchEffect > regChangePitch;
 #endif
@@ -262,6 +266,20 @@ void BuiltinEffectsRepository::updateEffectMetaList()
                     muse::mtrc("effects", "Truncate Silence"),
                     muse::mtrc("effects", "Automatically reduces the length of passages where the volume is below a specified level"),
                     BuiltinEffectCategoryId::Special,
+                    true
+                    );
+        } else if (symbol == SpectralHealEffect::Symbol) {
+            regMeta(desc,
+                    muse::mtrc("effects", "Spectral Heal"),
+                    muse::mtrc("effects", "Heals the selected spectral region"),
+                    BuiltinEffectCategoryId::NoiseRemovalAndRepair,
+                    false
+                    );
+        } else if (symbol == AdaptiveNoiseReductionEffect::Symbol) {
+            regMeta(desc,
+                    muse::mtrc("effects", "Adaptive Noise Reduction"),
+                    muse::mtrc("effects", "Reduces background noise by adaptively learning the noise profile"),
+                    BuiltinEffectCategoryId::NoiseRemovalAndRepair,
                     true
                     );
         }

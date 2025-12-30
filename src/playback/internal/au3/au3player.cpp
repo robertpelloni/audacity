@@ -10,6 +10,8 @@
 #include "au3-time-frequency-selection/SelectedRegion.h"
 #include "au3-track/Track.h"
 #include "au3-wave-track/WaveTrack.h"
+#include "au3-mixer/BusTrack.h"
+#include "au3-mixer/BusTrack.h"
 #include "au3-stretching-sequence/StretchingSequence.h"
 #include "au3-audio-io/ProjectAudioIO.h"
 #include "au3-time-frequency-selection/ViewInfo.h"
@@ -548,5 +550,13 @@ TransportSequences Au3Player::makeTransportTracks(Au3TrackList& trackList, bool 
                 StretchingSequence::Create(*pTrack, pTrack->GetClipInterfaces()));
         }
     }
+
+    {
+        const auto range = trackList.Any<BusTrack>();
+        for (auto pTrack : range) {
+            result.busTracks.push_back(pTrack->SharedPointer<const BusTrack>());
+        }
+    }
+
     return result;
 }
