@@ -17,12 +17,12 @@
 
 static const WaveClip::Attachments::RegisteredFactory sFactory{
    [](auto& owner) {
-      return std::make_unique<WaveClipRealtimeEffects>(static_cast<WaveClip&>(owner));
+      return std::make_unique<WaveClipRealtimeEffects>(&static_cast<WaveClip&>(owner));
    }
 };
 
-WaveClipRealtimeEffects::WaveClipRealtimeEffects(WaveClip& clip)
-    : mClip(clip)
+WaveClipRealtimeEffects::WaveClipRealtimeEffects(WaveClip* clip)
+    // : mClip(clip)
 {
 }
 
@@ -78,9 +78,8 @@ void WaveClipRealtimeEffects::Erase(size_t index)
 
 std::unique_ptr<ClientData::Cloneable<WaveClipListener>> WaveClipRealtimeEffects::Clone() const
 {
-   auto clone = std::make_unique<WaveClipRealtimeEffects>(mClip);
+   auto clone = std::make_unique<WaveClipRealtimeEffects>((WaveClip*)nullptr);
    // Copy the effect list
-   // RealtimeEffectList copy constructor should handle deep copy of settings
    *static_cast<RealtimeEffectList*>(clone.get()) = *this;
    return clone;
 }
@@ -145,16 +144,16 @@ void WaveClipRealtimeEffects::PrepareCache(size_t numChannels, size_t len)
     }
 }
 
-bool WaveClipRealtimeEffects::GetSamples(size_t iChannel, samplePtr buffer, sampleFormat format, sampleCount start, size_t len)
+bool WaveClipRealtimeEffects::GetSamples(WaveClip& clip, size_t iChannel, samplePtr buffer, sampleFormat format, sampleCount start, size_t len)
 {
     if (!IsActive()) {
         // Fallback should not happen if caller checked IsActive, but safety first
-        return mClip.GetSamples(iChannel, buffer, format, start, len);
+        return clip.GetSamples(iChannel, buffer, format, start, len);
     }
 
     std::lock_guard<std::mutex> lock(mCacheMutex);
 
-    size_t numChannels = mClip.NChannels();
+    size_t numChannels = clip.NChannels();
 
     // Check cache hit
     bool cacheHit = (mCache.start == start && mCache.len >= len && mCache.buffers.size() == numChannels);
@@ -170,7 +169,7 @@ bool WaveClipRealtimeEffects::GetSamples(size_t iChannel, samplePtr buffer, samp
         }
 
         // Fetch as float directly since effects need float
-        if (!mClip.GetSamples(rawPtrs.data(), floatSample, start, len)) {
+        if (!clip.GetSamples(rawPtrs.data(), floatSample, start, len)) {
             return false;
         }
 
@@ -190,7 +189,7 @@ bool WaveClipRealtimeEffects::GetSamples(size_t iChannel, samplePtr buffer, samp
              if (state.ProcessStart(true)) {
                  // We use the pointer to the clip as the group ID.
                  // RealtimeEffectState uses it only as a map key.
-                 const ChannelGroup* groupKey = reinterpret_cast<const ChannelGroup*>(&mClip);
+                 const ChannelGroup* groupKey = reinterpret_cast<const ChannelGroup*>(&clip);
 
                  state.Process(groupKey, numChannels, processPtrs.data(), processPtrs.data(), dummy.data(), len);
                  state.ProcessEnd();

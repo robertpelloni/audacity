@@ -165,6 +165,9 @@ set(MODULE_SRC
 
     ${CMAKE_CURRENT_LIST_DIR}/spectralheal/spectralhealeffect.cpp
     ${CMAKE_CURRENT_LIST_DIR}/spectralheal/spectralhealeffect.h
+
+    ${CMAKE_CURRENT_LIST_DIR}/adaptivenoisereduction/adaptivenoisereductioneffect.cpp
+    ${CMAKE_CURRENT_LIST_DIR}/adaptivenoisereduction/adaptivenoisereductioneffect.h
     )
 
 # AU3

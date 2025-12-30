@@ -38,8 +38,10 @@ std::shared_ptr<BusTrack> BusTrack::Create(const std::shared_ptr<TrackList>& own
 
 Track::Holder BusTrack::Clone(bool backup) const
 {
-    // Basic clone for now
-    return nullptr; // Todo implement factory
+    auto newTrack = std::make_shared<BusTrack>(CreateToken{});
+    newTrack->Init(*this);
+    newTrack->mEffects = mEffects;
+    return newTrack;
 }
 
 bool BusTrack::GetMute() const

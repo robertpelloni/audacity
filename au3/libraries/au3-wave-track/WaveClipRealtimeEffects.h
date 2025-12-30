@@ -24,7 +24,7 @@ class WAVE_TRACK_API WaveClipRealtimeEffects final
     , public WaveClipListener
 {
 public:
-    WaveClipRealtimeEffects(WaveClip& clip);
+    WaveClipRealtimeEffects(WaveClip* clip);
     ~WaveClipRealtimeEffects() override;
 
     // WaveClipListener implementation
@@ -52,10 +52,10 @@ public:
     // Runtime processing methods
     void Initialize(double rate, size_t bufferSize);
     bool IsActive() const;
-    bool GetSamples(size_t iChannel, samplePtr buffer, sampleFormat format, sampleCount start, size_t len);
+    bool GetSamples(WaveClip& clip, size_t iChannel, samplePtr buffer, sampleFormat format, sampleCount start, size_t len);
 
 private:
-    WaveClip& mClip;
+    // WaveClip& mClip; // Removed to avoid binding issues during cloning
 
     struct Cache {
         sampleCount start = -1;

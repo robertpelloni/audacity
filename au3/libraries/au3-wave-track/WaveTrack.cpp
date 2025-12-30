@@ -2852,7 +2852,7 @@ bool WaveTrack::GetOne(const WaveClipHolders& clips, size_t iChannel,
                                           * SAMPLE_SIZE(format));
 
             if (adapter.IsActive()) {
-                 success = adapter.GetSamples(iChannel, destBuffer, format, inclipDelta, samplesToCopy.as_size_t());
+                 success = adapter.GetSamples(*clip, iChannel, destBuffer, format, inclipDelta, samplesToCopy.as_size_t());
             } else {
                  success = clip->GetSamples(iChannel, destBuffer, format, inclipDelta, samplesToCopy.as_size_t(), mayThrow);
             }
