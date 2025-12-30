@@ -74,6 +74,7 @@ private:
 
     bool newMonoTrack() override;
     bool newStereoTrack() override;
+    bool newBusTrack() override;
     muse::RetVal<TrackId> newLabelTrack(const muse::String& title = muse::String()) override;
 
     bool deleteTracks(const TrackIdList& trackIds) override;

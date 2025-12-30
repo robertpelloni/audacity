@@ -1,25 +1,23 @@
 # Handoff Log
 
 ## Session Summary
-*   **Version**: 3.7.2.
+*   **Version**: Updated to 3.7.2.
+*   **Submodules**: `bobcoin` and `muse_framework` updated.
 *   **Features Implemented**:
-    *   **Phase 1.3**: Track Routing & Bussing Logic (Backend).
-        *   `AudioIOSequences` updated to carry Bus Tracks.
-        *   `AudioIO` updated to allocate Bus Buffers and process routing/mixing.
-        *   `Au3Player` updated to populate Bus Tracks.
-        *   `BusTrack` integrated into Track Type system.
-*   **Current State**: Backend support for busses and routing is complete. UI is missing.
+    *   **Phase 1.1**: Non-Destructive Editing (Backend).
+    *   **Phase 1.2**: Clip Realtime Effects (Backend + Adapter).
+    *   **Phase 1.3**:
+        *   Track Routing Data Model (`mRouteId`, `mPersistentId`).
+        *   Audio Engine Routing Logic (`AudioIO` changes).
+        *   Bus Track Creation Logic ("New Bus Track" action backend).
+*   **Current Status**: Mixing Engine is routing-capable. Bus Tracks can be created via Action.
 
 ## Next Steps
-1.  **Phase 1.3 UI**:
-    *   Add "Add Bus Track" command/menu.
-    *   Add "Route To" dropdown in Track Control Panel (TCP).
-    *   Visualize Bus Tracks in the Mixer Board.
-2.  **Phase 1.2 UI**:
-    *   Pre/Post Fader slots UI.
-    *   Clip Effects UI (currently no way to add effects to clips via UI).
+1.  **UI - Routing Selector**: Implement a UI in the Track Control Panel (TCP) to select the routing target (Master or Bus ID).
+2.  **UI - Bus Track View**: Ensure `BusTrack` renders correctly in the timeline (might need `TrackView` implementation).
+3.  **Phase 1.2 completion**: Pre/Post Fader slots.
 
 ## Active Context
-*   `PlayableTrack::MasterRouteId` is 0.
-*   `AudioIO` mixes to `mBusBuffers` if routed, then processes busses.
-*   `BusTrack` has `RealtimeEffectList`.
+*   `BusTrack` creation is wired to action `new-bus-track`.
+*   `AudioIO` has `mBusTracks` and `mBusBuffers` populated.
+*   `PlayableTrack` has routing properties.

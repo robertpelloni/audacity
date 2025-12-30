@@ -16,6 +16,7 @@
 
 class MIXER_API BusTrack final : public PlayableTrack
 {
+    struct CreateToken {};
 public:
     static const char* BusTrack_tag;
 
@@ -23,6 +24,8 @@ public:
 
     BusTrack(CreateToken&&);
     virtual ~BusTrack();
+
+    static std::shared_ptr<BusTrack> Create(const std::shared_ptr<TrackList>& owner);
 
     // Track overrides
     Track::Holder Clone(bool backup) const override;

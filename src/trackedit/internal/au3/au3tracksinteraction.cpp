@@ -12,6 +12,7 @@
 #include "au3-wave-track/WaveTrackUtilities.h"
 #include "au3-wave-track/WaveTrack.h"
 #include "au3-wave-track/WaveClip.h"
+#include "au3-mixer/BusTrack.h"
 #include "au3-label-track/LabelTrack.h"
 #include "au3-project-rate/ProjectRate.h"
 #include "au3-project-rate/QualitySettings.h"
@@ -676,6 +677,21 @@ bool Au3TracksInteraction::newStereoTrack()
     selectionController()->setFocusedTrack(trackId);
 
     projectHistory()->pushHistoryState("Created new stereo track", "New Stereo Track");
+    return true;
+}
+
+bool Au3TracksInteraction::newBusTrack()
+{
+    auto& tracks = Au3TrackList::Get(projectRef());
+    auto track = utils::appendBusTrack(tracks);
+
+    const auto prj = globalContext()->currentTrackeditProject();
+    prj->notifyAboutTrackAdded(DomConverter::track(track));
+
+    selectionController()->setSelectedTracks({ track->GetId() });
+    selectionController()->setFocusedTrack(track->GetId());
+
+    projectHistory()->pushHistoryState("Created new bus track", "New Bus Track");
     return true;
 }
 

@@ -19,6 +19,15 @@ BusTrack::BusTrack(CreateToken&&)
 
 BusTrack::~BusTrack() = default;
 
+std::shared_ptr<BusTrack> BusTrack::Create(const std::shared_ptr<TrackList>& owner)
+{
+    auto track = std::make_shared<BusTrack>(CreateToken{});
+    if (owner) {
+        owner->Add(track);
+    }
+    return track;
+}
+
  auto BusTrack::ClassTypeInfo() -> const TypeInfo&
  {
     static Track::TypeInfo info{

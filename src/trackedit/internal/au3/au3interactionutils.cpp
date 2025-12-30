@@ -5,6 +5,7 @@
 #include "../../trackedittypes.h"
 #include "au3wrap/internal/domaccessor.h"
 #include "au3-wave-track/WaveTrack.h"
+#include "au3-mixer/BusTrack.h"
 #include "au3-wave-track/WaveClip.h"
 #include "au3-project-rate/ProjectRate.h"
 #include "au3-project-rate/QualitySettings.h"
@@ -143,6 +144,14 @@ au::au3::Au3WaveTrack* au::trackedit::utils::appendWaveTrack(au3::Au3TrackList& 
     const au3::Au3WaveTrack::Holder track = trackFactory->Create(nChannels, defaultFormat, projectRate);
     track->SetName(tracks.MakeUniqueTrackName(au3::Au3WaveTrack::GetDefaultAudioTrackNamePreference()));
     tracks.Add(track);
+    return track.get();
+}
+
+BusTrack* au::trackedit::utils::appendBusTrack(au3::Au3TrackList& tracks)
+{
+    auto owner = tracks.shared_from_this();
+    auto track = BusTrack::Create(owner);
+    track->SetName(tracks.MakeUniqueTrackName("Bus Track"));
     return track.get();
 }
 
