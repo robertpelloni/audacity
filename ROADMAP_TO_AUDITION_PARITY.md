@@ -26,8 +26,8 @@ This roadmap outlines the strategic phases required to bring Audacity to feature
 ## Phase 2: The "Cool" Restoration & Analysis
 
 ### 2.1 Spectral Editing Evolution
-**Status: In Progress**
-*   **Spectral Spot Healing Brush**: Backend Scaffolded (`SpectralHealEffect`). Next: Signal Processing Logic.
+**Status: Backend Complete / UI Pending**
+*   **Spectral Spot Healing Brush**: Backend implemented (`SpectralHealEffect` with STFT/Inpainting). UI interaction pending.
 *   **Lasso Selection**: Not started.
 *   **Frequency Space Editing**: Not started.
 
